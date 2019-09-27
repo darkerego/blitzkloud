@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
+# BlitzKloud Server - https://github.com/darkerego/blitzkloud
+# darkerego, 2019 ~ xelectron@protonmail.com
 import pyaes
 import base64
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from time import sleep
 
-#  from sys import stdin, argv
-from sys import argv
-
+from sys import stdin, argv
 #  from termios import tcgetattr, TCSADRAIN
 #  from tty import setraw, tcsetattr
 
@@ -46,6 +46,9 @@ command_history = []
 
 
 class ShellServer(BaseHTTPRequestHandler):
+    """
+    Class to define HTTP method logic
+    """
 
     def _set_headers(self):
         self.send_response(200)
@@ -59,7 +62,7 @@ class ShellServer(BaseHTTPRequestHandler):
         try:
             data = input('$ ')
         except KeyboardInterrupt:
-            quit_now = input('Quit? (y/n/r/h)')  # yes/no/restart/command history
+            quit_now = input('Quit? (y/n/r/c)')
             if quit_now == 'y':
                 exit(0)
             elif quit_now == 'r':
@@ -97,19 +100,10 @@ class ShellServer(BaseHTTPRequestHandler):
         return
 
 
-def run(server_class=HTTPServer, handler_class=ShellServer, port=80):
+"""class _Getch:  # History scrolling not yet implemented
 
-    server_address = ('0.0.0.0', port)
-    httpd = server_class(server_address, handler_class)
-    print('Starting httpd...')
-    while True:
-        httpd.serve_forever()
-        print('Restarting server ... ')
-        sleep(1)
+    #  TODO:  implement scrolling of command history OR full PTY shell
 
-#  TODO: implement scrolling of command history
-
-"""class _Getch:
     def __call__(self):
         fd = stdin.fileno()
         old_settings = tcgetattr(fd)
@@ -119,7 +113,11 @@ def run(server_class=HTTPServer, handler_class=ShellServer, port=80):
         finally:
             tcsetattr(fd, TCSADRAIN, old_settings)
         return ch
+
+
 def scroll():
+
+    #  TODO: implement OR use a real PTY shell
     inkey = _Getch()
     while(1):
             k = inkey()
@@ -129,7 +127,18 @@ def scroll():
     elif k == '\x1b[B':
         print("down")
     else:
-       pass"""
+        pass"""
+
+
+def run(server_class=HTTPServer, handler_class=ShellServer, port=80):
+
+    server_address = ('0.0.0.0', port)
+    httpd = server_class(server_address, handler_class)
+    print('Starting httpd on %s:%d...' % (server_address, port))
+    while True:
+        httpd.serve_forever()
+        print('Restarting server ... ')
+        sleep(1)
 
 
 if __name__ == "__main__":
@@ -137,4 +146,4 @@ if __name__ == "__main__":
     if len(argv) == 2:
         run(port=int(argv[1]))
     else:
-        run(port=8080)
+        run(port=8880)
