@@ -78,7 +78,7 @@ $ python3 ./srv.py
 Starting httpd on ('0.0.0.0', 8880)...
 </pre>
 
-<p>Note: Cloudflare can proxy HTTP traffic on several different ports including 80, 8080, and 8800.</p>
+<p>Note: Cloudflare can proxy HTTP traffic on several different ports including 80, 8080, and 8880.</p>
 
 <p>
 Next, configure the server and payload. First, choose a key to encrypt all traffic with using the
