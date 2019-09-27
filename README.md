@@ -36,7 +36,7 @@ anyone monitoring DNS requests alone will not see the actual URL of your server:
 <p><b>SNI Proof of Concept:</b></p>
 <pre>
  $ curl -H "Host: sni.vulnerable.site" http://upwork.com
- \<!-- Tada! You've reached sni.vulnerable.site! -->
+ <\!-- Tada! You've reached sni.vulnerable.site! -->
 </pre>
 <p>
 For more details on SNI and domain fronting, see:
