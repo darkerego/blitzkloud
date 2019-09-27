@@ -35,7 +35,9 @@ anyone monitoring DNS requests alone will not see the actual URL of your server:
 
 <p><b>SNI Proof of Concept:</b></p>
 <pre>
- $ curl -H "Host: your.remote.host" http://upwork.com
+ $ curl -H "Host: sni.vulnerable.site" http://upwork.com
+ <!-- Tada! You've reached sni.vulnerable.site! -->
+ --- trunicated ---
 </pre>
 <p>
 For more details on SNI and domain fronting, see:
@@ -95,7 +97,7 @@ following variables must be set:</p>
 
 <pre>
 debug = False  # Display errors and output (for debugging)
-front_url = 'your.evil.host'  # your c&c server: example: developer.attacker.com
+front_url = 'sni.vulnerable.site'  # your c&c server: example: developer.attacker.com
 url = 'http://mediafire.com:8880'  # example: http://upwork.com:8880 - (include port of listener if not port 80 (http)
 key = b"This_key_for_demo_purposes_only!"  # AES Encryption key - keep private, must be in byte form.
 </pre>
