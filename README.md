@@ -12,13 +12,24 @@ AES encryption. Written in Python3, with dependencies minimized.  </p>
 
 
 
-<p>Blitzkloud is a Cloudflare compatable reverse HTTP shell with SNI 
-domain fronting capabilities, built in AES encryption. Allows an 
-attacker to hide a reverse shell server behind cloudflare, proxying 
-command and output through Cloudflare's global CDN, thus not revealing 
-the IP address of your shell server. Additionally provides some obfuscation 
+<p>Blitzkloud is a Cloudflare compatible reverse HTTP shell, with SNI 
+domain fronting functionality. Because this shell does not yet support HTTPS, 
+(and even if it did, remember, Cloudflare is giant MITM honeypot), the shell 
+also has built in support for AES encryption (no external libaries needed for payload
+because I imported functionality from pyaes directly into the paylaod!). 
+The goal was to create a pure python3- powered reverse shell with miminal, (eventually no) 
+outside dependencies (for portability), which allows the user to conceal the location of his or her
+server (where we catch the shell), by both proxying through cloudflare, and hiding DNS 
+requests to the destination server employing domain fronting tactics via SNI (server
+name indication).
+</p>
+
+<p>
+This functionality allows an attacker to hide their c&c server's ip and (to some extent) 
+ domain, proxying commands and output through Cloudflare's global CDN, thus not revealing 
+the IP address of your server. The shell also provides some obfuscation 
 by exploiting Cloudflare's SNI bug/|feature domain fronting capabilities -- 
-anyone monitoring DNS requests will not see the actual URL of your server:
+anyone monitoring DNS requests alone will not see the actual URL of your server:
 </p>
 
 
