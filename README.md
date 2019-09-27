@@ -53,7 +53,6 @@ Requirements:
 - VPS Server
 - Cloudflare account
 - Domain name (set up to use Cloudflare's CDN.)
-- Human with an intelligence quota at least 120
 
 <b>Setup & Configuration: </b>
 
