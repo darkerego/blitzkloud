@@ -41,8 +41,7 @@ anyone monitoring DNS requests alone will not see the actual URL of your server:
 For more details on SNI and domain fronting, see:
 https://en.wikipedia.org/wiki/Domain_fronting
 </p>
-[![domain-front.png](https://i.postimg.cc/br233qtp/domain-front.png)](https://postimg.cc/V0mqNQgV)
- 
+![GitHub Logo](domain-front.png) 
 #### Usage
 
 Requirements:
