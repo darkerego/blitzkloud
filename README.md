@@ -76,7 +76,7 @@ Test to make sure that the listener runs and has been installed correctly:
 
 <pre>
 $ python3 ./srv.py
-Starting httpd on ('0.0.0.0', 8880):8880...
+Starting httpd on ('0.0.0.0', 8880)...
 </pre>
 
 <p>Note: Cloudflare can proxy HTTP traffic on several different ports including 80, 8080, and 8800.</p>
