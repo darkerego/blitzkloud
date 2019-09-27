@@ -37,6 +37,7 @@ anyone monitoring DNS requests alone will not see the actual URL of your server:
 <pre>
  $ curl -H "Host: your.remote.host" http://upwork.com
 </pre>
+[domain-front.png](https://postimg.cc/V0mqNQgV)
 <p>
 For more details on SNI and domain fronting, see:
 https://en.wikipedia.org/wiki/Domain_fronting
