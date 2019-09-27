@@ -64,7 +64,7 @@ you will need a free account with Cloudflare. Finally, you need a domain name. <
 Configure your DNS to use Cloudflare's network. Next, install the listener on your server:
 
 <pre>
-$ git clone https://github.com/darkerego/blitzcloud
+$ git clone https://github.com/darkerego/blitzkloud
 $ cd blitzcloud
 $ pip3 install --user -r requirements.txt
 </pre>
