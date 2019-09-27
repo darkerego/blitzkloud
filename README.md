@@ -14,11 +14,11 @@ AES encryption. Written in Python3, with dependencies minimized.  </p>
 
 <p>Blitzkloud is a Cloudflare compatible reverse HTTP shell, with SNI 
 domain fronting functionality. Because this shell does not yet support HTTPS, 
-(and even if it did, remember, Cloudflare is giant MITM honeypot), the shell 
-also has built in support for AES encryption (no external libaries needed for payload
-because I imported functionality from pyaes directly into the paylaod!). 
-The goal was to create a pure python3- powered reverse shell with miminal, (eventually no) 
-outside dependencies (for portability), which allows the user to conceal the location of his or her
+(and even if it did, remember, Cloudflare is essentially a giant MITM honeypot), the shell 
+also has built in support for AES encryption (no external libaries needed for AES with 
+the payload because I imported functionality from pyaes directly.).  The goal was to create 
+ a pure python3- powered reverse shell with miminal, (eventually no) outside dependencies 
+(for portability), which allows the user to conceal the location of his or her
 server (where we catch the shell), by both proxying through cloudflare, and hiding DNS 
 requests to the destination server employing domain fronting tactics via SNI (server
 name indication).
@@ -106,11 +106,12 @@ virtually platform agnostic -- in other words, if the target system can run Pyth
 run this payload as well.
 </p>
 
-TODO: 
+
+#### TODO: 
 
 - Figure out, is domain fronting over HTTPS still possible? If yes, implement
 - Consider sending output back as a cookie with a get request instead a post
-- Better discussing of payloads - (make traffic look as innocuous as possible)
+- Better concealing of payloads - (make traffic look as innocuous as possible)
 - Implement command history in shell , OR
 - Implement a full PTY over HTTP shell
 - Options for packing, obfuscation, compilation
