@@ -98,6 +98,8 @@ class ShellServer(BaseHTTPRequestHandler):
         res = denc(_post_data)
         print(res)
         return
+    def log_message(self, format, *args):
+        return
 
 
 """class _Getch:  # History scrolling not yet implemented
