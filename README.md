@@ -2,7 +2,7 @@
 ==================
 
 <p> A Cloudflare compatible, SNI/domain fronting compliant Reverse HTTP Shell with built in 
-AES encryption. Written in Python3, with dependencies minimized.  </p>
+AES encryption. Written in Python3, no 3rd part dependencies.  </p>
 <br>
 
 <p><i> Darkerego 2019 ~ xelectron@protonmail.com ~ https://github.com/darkerego</i></p>
@@ -17,7 +17,7 @@ domain fronting functionality. Because this shell does not yet support HTTPS,
 (and even if it did, remember, Cloudflare is essentially a giant MITM honeypot), the shell 
 also has built in support for AES encryption (no external libaries needed for AES with 
 the payload because I imported functionality from pyaes directly.).  The goal was to create 
- a pure python3- powered reverse shell with miminal, (eventually no) outside dependencies 
+ a pure python3- powered reverse shell with no 3rd party dependencies 
 (for portability), which allows the user to conceal the location of his or her
 server (where we catch the shell), by both proxying through cloudflare, and hiding DNS 
 requests to the destination server employing domain fronting tactics via SNI (server
@@ -118,5 +118,4 @@ run this payload as well.
 - Options for packing, obfuscation, compilation
 - More details in the README about how this all works
 - Port backwards so payload is Python2 compatible
-- Eliminate dependencies (like requests), rewrite using raw sockets
   
