@@ -2,7 +2,8 @@
 ==================
 
 <p> A Cloudflare compatible, SNI/domain fronting compliant Reverse HTTP Shell with built in 
-AES encryption. Written in Python3, no 3rd part dependencies.  </p>
+AES encryption. Written in Python3, no 3rd part dependencies. **Note**: no longer works with cloudflare, 
+but there are cdn's this still works with!</p>
 <br>
 
 <p><i> Darkerego 2019 ~ xelectron@protonmail.com ~ https://github.com/darkerego</i></p>
